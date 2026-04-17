@@ -3,5 +3,5 @@ from fastapi import FastAPI
 app = FastAPI()
 
 @app.get("/")
-def health():
-    return {"ok": True}
+def root():
+    return {"ok": True, "message": "rag-movie-chatbot is live"}
