@@ -1,13 +1,6 @@
 {
-  "functions": {
-    "api/*.py": {
-      "runtime": "python3.11"
-    }
-  },
+  "version": 2,
   "routes": [
-    {
-      "src": "/api/chat",
-      "dest": "/api/chat.py"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
