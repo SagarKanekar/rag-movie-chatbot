@@ -4,7 +4,7 @@ const sendBtn = document.getElementById("sendBtn");
 const clearChatBtn = document.getElementById("clearChatBtn");
 const messages = document.getElementById("messages");
 const statusText = document.getElementById("statusText");
-const chips = document.querySelectorAll(".chip");
+const chips = document.querySelectorAll("button.chip");
 const emptyState = document.getElementById("emptyState");
 
 let isLoading = false;
@@ -95,13 +95,13 @@ async function sendMessage(rawMessage) {
       typingBubble = null;
     }
     addMessage("assistant", data.reply);
-  } catch (_) {
+  } catch (error) {
     if (typingBubble) {
       typingBubble.remove();
       typingBubble = null;
     }
-    statusText.textContent = "Sorry, we couldn't reach the chat service. Please try again.";
-    addMessage("assistant", "I hit an issue connecting to the server. Please try again in a moment.");
+    const errorMessage = error instanceof Error && error.message ? error.message : "Sorry, we couldn't reach the chat service. Please try again.";
+    statusText.textContent = errorMessage;
   } finally {
     setLoading(false);
     messageInput.focus();
