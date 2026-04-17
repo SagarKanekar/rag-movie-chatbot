@@ -106,12 +106,14 @@ def _get_or_create_agent(
 
 
 @app.route("/", methods=["GET"])
+@app.route("/health", methods=["GET"])
 @app.route("/api/chat", methods=["GET"])
 def healthcheck():
     return jsonify({"status": "ok", "endpoint": "/api/chat"})
 
 
 @app.route("/", methods=["POST"])
+@app.route("/chat", methods=["POST"])
 @app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.get_json(silent=True)
