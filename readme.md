@@ -166,16 +166,13 @@ curl -X POST https://<your-render-service>.onrender.com/chat \
   }'
 ```
 
-### 2) Frontend on Vercel (if present)
+### 2) Frontend on Vercel
 
-This repo currently ships a Streamlit UI (`app.py`) for local usage.  
-If you deploy a separate frontend to Vercel, configure it to call Render backend URLs.
+This repository includes a static web frontend (`index.html`) designed for Vercel.
 
-Recommended frontend env var:
-- `NEXT_PUBLIC_API_BASE_URL=https://<your-render-service>.onrender.com`
-
-Example API call target from frontend:
-- `${NEXT_PUBLIC_API_BASE_URL}/chat`
+- `/` serves the chat UI
+- UI requests are sent to `POST /chat`
+- `/chat` is handled by `api/index.py`
 
 ### 3) Stateless hosting notes
 
