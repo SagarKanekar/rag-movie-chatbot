@@ -3,23 +3,43 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from groq import Groq
 
-app = FastAPI()
+app = FastAPI(title="RAG Movie Chatbot API")
+
 
 class ChatRequest(BaseModel):
     message: str
-    model: str = "llama-3.1-8b-instant"  # change if you want
+    model: str = "llama-3.1-8b-instant"
+
 
 @app.get("/")
 def health():
-    return {"ok": True, "message": "rag-movie-chatbot is live"}
+    return {
+        "ok": True,
+        "message": "rag-movie-chatbot is live",
+        "endpoints": {
+            "health": "GET /",
+            "chat_help": "GET /chat",
+            "chat": "POST /chat"
+        }
+    }
+
+
+@app.get("/chat")
+def chat_get_help():
+    return {
+        "ok": True,
+        "hint": "Use POST /chat with JSON body: {\"message\":\"Suggest 5 thriller movies\"}"
+    }
+
 
 @app.post("/chat")
 def chat(req: ChatRequest):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY")
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY in environment variables")
 
-    if not req.message or not req.message.strip():
+    user_message = (req.message or "").strip()
+    if not user_message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     try:
@@ -30,18 +50,22 @@ def chat(req: ChatRequest):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful movie recommendation assistant."
+                    "content": (
+                        "You are a helpful movie recommendation assistant. "
+                        "Give concise, high-quality recommendations with brief reasons."
+                    )
                 },
-                {
-                    "role": "user",
-                    "content": req.message.strip()
-                }
+                {"role": "user", "content": user_message}
             ],
             temperature=0.7,
         )
 
-        answer = completion.choices[0].message.content
-        return {"ok": True, "reply": answer}
+        reply = completion.choices[0].message.content or ""
+        return {
+            "ok": True,
+            "reply": reply,
+            "model": req.model
+        }
+
     except Exception as e:
-        # Surface a useful error in Vercel logs
         raise HTTPException(status_code=500, detail=f"Chat generation failed: {str(e)}")
