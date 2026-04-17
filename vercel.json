@@ -2,12 +2,18 @@
   "version": 2,
   "builds": [
     { "src": "api/index.py", "use": "@vercel/python" },
-    { "src": "index.html", "use": "@vercel/static" }
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "styles.css", "use": "@vercel/static" },
+    { "src": "script.js", "use": "@vercel/static" }
   ],
   "routes": [
-    { "handle": "filesystem" },
+    { "src": "/styles.css", "dest": "/styles.css" },
+    { "src": "/script.js", "dest": "/script.js" },
+
     { "src": "/chat", "methods": ["GET", "POST"], "dest": "/api/index.py" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
+
+    { "handle": "filesystem" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
