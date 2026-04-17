@@ -173,6 +173,11 @@ This repository includes a static web frontend (`index.html`) designed for Verce
 - `/` serves the chat UI
 - UI requests are sent to `POST /chat`
 - `/chat` is handled by `api/index.py`
+- Frontend includes:
+  - local chat history persistence via `localStorage`
+  - progressive assistant rendering (typing-style fallback when backend is non-streaming)
+  - assistant message actions (copy + regenerate) and retry on failed requests
+  - optional prompt filter chips (genre, mood, decade, runtime, language)
 
 ### 3) Stateless hosting notes
 

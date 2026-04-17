@@ -28,14 +28,30 @@
 
         <section class="panel-block" aria-labelledby="historyHeading">
           <h2 id="historyHeading">History</h2>
-          <p class="panel-muted">Conversation history is coming soon. For now, use <strong>Clear chat</strong> to start a fresh thread.</p>
+          <p class="panel-muted">Your thread is saved in this browser and restored on reload.</p>
+        </section>
+
+        <section class="panel-block" aria-labelledby="filtersHeading">
+          <h2 id="filtersHeading">Quick filters</h2>
+          <div class="chips filters" role="list" aria-label="Prompt filters">
+            <button class="chip filter-chip" type="button" data-filter-group="genre" data-filter-value="Thriller">Thriller</button>
+            <button class="chip filter-chip" type="button" data-filter-group="genre" data-filter-value="Sci-Fi">Sci-Fi</button>
+            <button class="chip filter-chip" type="button" data-filter-group="mood" data-filter-value="Feel-good">Feel-good</button>
+            <button class="chip filter-chip" type="button" data-filter-group="mood" data-filter-value="Dark">Dark</button>
+            <button class="chip filter-chip" type="button" data-filter-group="decade" data-filter-value="1990s">1990s</button>
+            <button class="chip filter-chip" type="button" data-filter-group="decade" data-filter-value="2010s">2010s</button>
+            <button class="chip filter-chip" type="button" data-filter-group="runtime" data-filter-value="Under 2 hours">Under 2h</button>
+            <button class="chip filter-chip" type="button" data-filter-group="runtime" data-filter-value="Epic (2.5h+)">Epic</button>
+            <button class="chip filter-chip" type="button" data-filter-group="language" data-filter-value="English">English</button>
+            <button class="chip filter-chip" type="button" data-filter-group="language" data-filter-value="Non-English">Non-English</button>
+          </div>
         </section>
       </aside>
 
       <section class="chat-shell" aria-label="Movie chat panel">
         <div class="toolbar">
           <p class="toolbar-label">Assistant ready</p>
-          <button id="clearChatBtn" class="secondary" type="button" aria-label="Clear current chat">Clear chat</button>
+          <button id="clearChatBtn" class="secondary" type="button" aria-label="Start a new chat">New chat</button>
         </div>
 
         <div id="messages" class="messages" aria-live="polite" aria-atomic="false">
