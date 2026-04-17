@@ -11,6 +11,7 @@ const emptyState = document.getElementById("emptyState");
 
 const STORAGE_KEY = "cineScopeChatHistoryV1";
 const FILTER_SUFFIX_PATTERN = /\n\n\[Filters:[\s\S]*?\]\s*$/;
+const REVEAL_FRAME_DELAY_MS = 16;
 
 let isLoading = false;
 let typingBubble = null;
@@ -85,6 +86,7 @@ function loadHistory() {
 }
 
 function stripMarkdown(value) {
+  // Lightweight markdown stripping for common assistant formatting.
   return value.replace(/\*\*(.*?)\*\*/g, "$1").replace(/`(.*?)`/g, "$1").trim();
 }
 
@@ -105,6 +107,7 @@ function parseRecommendationCards(text) {
   const cards = listItems
     .map((item) => {
       const normalized = stripMarkdown(item);
+      // Match "Title - Description", "Title — Description", or "Title: Description".
       const split = normalized.split(/\s[-–—:]\s(.+)/, 2);
       const title = stripMarkdown(split[0] || "");
       const description = stripMarkdown(split[1] || "");
@@ -309,7 +312,7 @@ async function revealAssistantMessage(targetBubble, fullText) {
     revealed += chunk;
     renderAssistantContent(content, revealed, true);
     maybeScrollToBottom();
-    await new Promise((resolve) => window.setTimeout(resolve, 16));
+    await new Promise((resolve) => window.setTimeout(resolve, REVEAL_FRAME_DELAY_MS));
   }
 
   renderAssistantContent(content, safeText);
