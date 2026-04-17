@@ -30,7 +30,7 @@ A free, open-source movie recommendation chatbot that analyzes your Letterboxd d
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/Varun-666/rag-movie-chatbot.git
+git clone https://github.com/SagarKanekar/rag-movie-chatbot.git
 cd rag-movie-chatbot
 ```
 
@@ -64,6 +64,16 @@ streamlit run app.py
 ```
 
 Open http://localhost:8501 in your browser.
+
+### 7. Run Backend API Locally (optional)
+```bash
+gunicorn --chdir api chat:app --bind 127.0.0.1:8000
+```
+
+Then test:
+```bash
+curl http://127.0.0.1:8000/health
+```
 
 ## 📚 Usage
 
@@ -105,58 +115,73 @@ rag-movie-chatbot/
 - Vector embeddings are stored locally
 - No data is sent to third parties (except LLM provider)
 
-## 🚢 Deployment
+## 🚢 Deployment (Production)
 
-### Vercel (Python Serverless API)
-This repo now includes a Vercel-ready API endpoint at `POST /api/chat`.
+Recommended setup:
+- **Backend API** on **Render** (long-running Python service)
+- **Frontend** on **Vercel** (if you add a web frontend in this repo or a separate repo)
 
-1. Import the repository into Vercel.
-2. Set environment variables in Vercel project settings:
+### 1) Backend on Render (Flask + Gunicorn)
+
+This repository exposes a Flask API from `api/chat.py`.
+
+- Health endpoint: `GET /health`
+- Chat endpoints: `POST /chat` and `POST /api/chat` (both supported)
+
+Render settings:
+1. Create a **Web Service** from this repo (`main` branch).
+2. Runtime: **Python**
+3. Build command:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Start command (or rely on the included `Procfile`):
+   ```bash
+   gunicorn --chdir api chat:app --bind 0.0.0.0:$PORT
+   ```
+5. Set required environment variables:
    - `GROQ_API_KEY` (required for default `provider: "groq"`)
-   - `HUGGINGFACE_API_KEY` (required only when `provider: "huggingface"`)
+   - `HUGGINGFACE_API_KEY` (optional, only for `provider: "huggingface"`)
    - `VECTOR_STORE_DIR` (optional, defaults to `/tmp/chroma_db`)
-3. Deploy (Vercel uses `vercel.json` + `api/chat.py`).
 
-Request format:
-```json
-{
-  "message": "Recommend me a sci-fi movie",
-  "provider": "groq",
-  "loader_stats": {"total_movies": 200, "rated_movies": 180, "years_range": "1990 - 2024"},
-  "movies": [
-    {"Name": "Inception", "Year": "2010", "Rating": "4.5", "Review": "Mind-bending sci-fi."}
-  ]
-}
+Quick verification after deploy:
+```bash
+curl https://<your-render-service>.onrender.com/health
 ```
 
-Response contains a generated assistant `response` string (or a JSON `error` on failure).
-`loader_stats` is optional metadata used when the agent handles collection-analysis style questions.
+Expected response:
+```json
+{"status":"ok","endpoint":"/api/chat"}
+```
 
-**Local vs Vercel behavior**
-- **Local UI**: `streamlit run app.py` (upload CSV directly in the app).
-- **Vercel API**: request/response mode via `/api/chat`; the request must include movie data in `movies`.
+Sample chat request:
+```bash
+curl -X POST https://<your-render-service>.onrender.com/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message":"Recommend me a sci-fi movie",
+    "provider":"groq",
+    "loader_stats":{"total_movies":1,"rated_movies":1,"years_range":"2010 - 2010"},
+    "movies":[{"Name":"Inception","Year":"2010","Rating":"4.5","Review":"Mind-bending sci-fi."}]
+  }'
+```
 
-**Limitations**
-- Serverless runtime is stateless and uses temporary storage (`/tmp`), so vector data is not durable.
-- Cold starts and embedding generation can increase latency for large movie lists.
+### 2) Frontend on Vercel (if present)
 
-### Railway
-1. Push to GitHub
-2. Connect to Railway
-3. Add `GROQ_API_KEY` environment variable
-4. Auto-deploy
+This repo currently ships a Streamlit UI (`app.py`) for local usage.  
+If you deploy a separate frontend to Vercel, configure it to call Render backend URLs.
 
-### Render
-1. Create `render.yaml` with deployment config
-2. Connect GitHub repo
-3. Add secrets
-4. Deploy
+Recommended frontend env var:
+- `NEXT_PUBLIC_API_BASE_URL=https://<your-render-service>.onrender.com`
 
-### HuggingFace Spaces
-1. Create new Streamlit space
-2. Connect repo
-3. Add `GROQ_API_KEY` as secret
-4. Deploy
+Example API call target from frontend:
+- `${NEXT_PUBLIC_API_BASE_URL}/chat`
+
+### 3) Stateless hosting notes
+
+- Runtime-critical chat data is sent in each request (`movies` payload), so the API does **not** require durable local disk.
+- `VECTOR_STORE_DIR` defaults to `/tmp/chroma_db`; this is ephemeral and used as a cache/optimization only.
+- Keep provider API keys in Render/Vercel environment variables. Do not commit secrets.
 
 ## 🤝 Contributing
 
