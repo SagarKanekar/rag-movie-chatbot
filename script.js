@@ -97,7 +97,7 @@ function parseRecommendationCards(text) {
     .filter(Boolean);
 
   const listItems = lines
-    .map((line) => line.match(/^(?:\d+[\).\s-]+|[-*•]\s+)(.+)$/)?.[1]?.trim())
+    .map((line) => line.match(/^(?:\d+[).\s-]+|[-*•]\s+)(.+)$/)?.[1]?.trim())
     .filter(Boolean);
 
   if (listItems.length < 2) {
@@ -299,13 +299,18 @@ function setLoading(loading) {
 }
 
 async function revealAssistantMessage(targetBubble, fullText) {
-  const safeText = fullText.trim() || "I received an empty response. Please try asking again.";
+  const safeText = fullText.trim() || "The assistant returned an empty response. Please try asking again.";
   const content = targetBubble.querySelector(".message-content") || document.createElement("div");
   content.className = "message-content";
   targetBubble.innerHTML = "";
   targetBubble.appendChild(content);
 
-  const chunks = safeText.match(/\S+\s*/g) || [safeText];
+  const words = safeText.match(/\S+\s*/g) || [safeText];
+  const chunks = [];
+  const chunkSize = 3;
+  for (let index = 0; index < words.length; index += chunkSize) {
+    chunks.push(words.slice(index, index + chunkSize).join(""));
+  }
   let revealed = "";
 
   for (const chunk of chunks) {
