@@ -122,13 +122,15 @@ Request format:
 {
   "message": "Recommend me a sci-fi movie",
   "provider": "groq",
+  "loader_stats": {"total_movies": 200, "rated_movies": 180, "years_range": "1990 - 2024"},
   "movies": [
     {"Name": "Inception", "Year": "2010", "Rating": "4.5", "Review": "Mind-bending sci-fi."}
   ]
 }
 ```
 
-Response contains `response`, `action`, `movies`, and `conversation_turn`.
+Response contains a generated assistant `response` string (or a JSON `error` on failure).
+`loader_stats` is optional metadata used when the agent handles collection-analysis style questions.
 
 **Local vs Vercel behavior**
 - **Local UI**: `streamlit run app.py` (upload CSV directly in the app).

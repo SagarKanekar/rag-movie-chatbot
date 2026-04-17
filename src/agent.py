@@ -97,7 +97,7 @@ class MovieChatbotAgent:
         
         except Exception as e:
             logger.error(f"Error in agent execution: {e}")
-            result['response'] = f"I encountered an error: {str(e)}. Please try again."
+            result['response'] = "I encountered an error. Please try again."
         
         return result
     

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -22,7 +23,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-_AGENT_CACHE: Dict[str, Any] = {}
+_AGENT_CACHE: "OrderedDict[str, Any]" = OrderedDict()
+MAX_CACHE_SIZE = 2
 
 
 def _error_response(message: str, status_code: int = 400):
@@ -30,6 +32,7 @@ def _error_response(message: str, status_code: int = 400):
 
 
 def _normalize_movies(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Normalize incoming movie records and ensure `combined_text` is present."""
     normalized_movies: List[Dict[str, Any]] = []
 
     for movie in movies:
@@ -42,7 +45,7 @@ def _normalize_movies(movies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 str(cleaned.get(field, ""))
                 for field in ("Name", "Year", "Review")
             ).strip()
-            cleaned["combined_text"] = combined_text or str(cleaned)
+            cleaned["combined_text"] = combined_text or str(cleaned.get("Name", ""))
 
         normalized_movies.append(cleaned)
 
@@ -54,12 +57,12 @@ def _cache_key(provider: str, movies: List[Dict[str, Any]]) -> str:
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     return f"{provider.lower()}:{digest}"
 
-
 def _build_agent(
     provider: str,
     movies: List[Dict[str, Any]],
     loader_stats: Dict[str, Any],
 ):
+    """Build a MovieChatbotAgent backed by a collection derived from the movie payload."""
     from src.agent import MovieChatbotAgent
     from src.rag_engine import MovieRAGEngine
     from src.utils import create_llm_provider
@@ -68,8 +71,14 @@ def _build_agent(
     persist_dir = os.getenv("VECTOR_STORE_DIR", "/tmp/chroma_db")
 
     vector_store = MovieVectorStore(persist_dir=persist_dir)
-    vector_store.create_collection(name="movies", reset=True)
-    vector_store.add_movies(movies)
+    collection_hash = hashlib.sha256(
+        json.dumps(movies, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:12]
+    collection_name = f"movies_{collection_hash}"
+
+    vector_store.create_collection(name=collection_name, reset=False)
+    if vector_store.collection.count() == 0:
+        vector_store.add_movies(movies)
 
     llm = create_llm_provider(provider)
     rag_engine = MovieRAGEngine(vector_store, llm)
@@ -81,15 +90,18 @@ def _get_or_create_agent(
     movies: List[Dict[str, Any]],
     loader_stats: Dict[str, Any],
 ):
+    """Return a cached agent when possible, otherwise build and cache a new one."""
     key = _cache_key(provider, movies)
     cached_agent = _AGENT_CACHE.get(key)
 
     if cached_agent is not None:
+        _AGENT_CACHE.move_to_end(key)
         return cached_agent
 
     agent = _build_agent(provider, movies, loader_stats)
-    _AGENT_CACHE.clear()
     _AGENT_CACHE[key] = agent
+    if len(_AGENT_CACHE) > MAX_CACHE_SIZE:
+        _AGENT_CACHE.popitem(last=False)
     return agent
 
 
@@ -129,22 +141,21 @@ def chat():
 
         agent = _get_or_create_agent(provider.strip(), movies, loader_stats or {})
         result = agent.execute(message.strip())
+        response_text = result.get("response", "")
+        if not isinstance(response_text, str):
+            response_text = str(response_text)
 
         return jsonify(
             {
-                "response": result.get("response", ""),
-                "action": result.get("action"),
-                "movies": result.get("movies", []),
-                "conversation_turn": result.get("conversation_turn"),
+                "response": response_text,
             }
         )
-    except (ImportError, ValueError) as exc:
-        logger.error("Chat request validation/runtime error: %s", exc)
-        return _error_response(str(exc), 400)
-    except Exception as exc:
+    except ImportError:
+        logger.exception("Chat request dependency/runtime error")
+        return _error_response("Server dependency is missing.", 500)
+    except ValueError:
+        logger.exception("Chat request value/configuration error")
+        return _error_response("Invalid payload or provider configuration.", 400)
+    except Exception:
         logger.exception("Unhandled chat request error")
-        return jsonify(
-            {
-                "error": "Failed to process chat request.",
-            }
-        ), 500
+        return _error_response("Failed to process chat request.", 500)
