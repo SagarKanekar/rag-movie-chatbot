@@ -10,8 +10,10 @@ const filterChips = document.querySelectorAll("button.filter-chip");
 const emptyState = document.getElementById("emptyState");
 
 const STORAGE_KEY = "cineScopeChatHistoryV1";
-const FILTER_SUFFIX_PATTERN = /\n\n\[Filters:[\s\S]*?\]\s*$/;
+const FILTER_SUFFIX_PATTERN = /\n\n\[Filters:[\s\S]*\]\s*$/;
+const LIST_ITEM_PATTERN = /^(?:\d+[).\s-]+|[-*•]\s+)(.+)$/;
 const REVEAL_FRAME_DELAY_MS = 16;
+const REVEAL_CHUNK_SIZE = 3;
 
 let isLoading = false;
 let typingBubble = null;
@@ -97,7 +99,7 @@ function parseRecommendationCards(text) {
     .filter(Boolean);
 
   const listItems = lines
-    .map((line) => line.match(/^(?:\d+[).\s-]+|[-*•]\s+)(.+)$/)?.[1]?.trim())
+    .map((line) => line.match(LIST_ITEM_PATTERN)?.[1]?.trim())
     .filter(Boolean);
 
   if (listItems.length < 2) {
@@ -206,7 +208,7 @@ async function copyToClipboard(text) {
       }
     }, 1200);
   } catch (_) {
-    updateStatus("Copy failed. Please copy manually.");
+    updateStatus("Copy failed. Please select and copy the text manually.");
   }
 }
 
@@ -299,7 +301,7 @@ function setLoading(loading) {
 }
 
 async function revealAssistantMessage(targetBubble, fullText) {
-  const safeText = fullText.trim() || "The assistant returned an empty response. Please try asking again.";
+  const safeText = fullText.trim() || "The assistant returned an empty response. Please rephrase your question or try again.";
   const content = targetBubble.querySelector(".message-content") || document.createElement("div");
   content.className = "message-content";
   targetBubble.innerHTML = "";
@@ -307,9 +309,8 @@ async function revealAssistantMessage(targetBubble, fullText) {
 
   const words = safeText.match(/\S+\s*/g) || [safeText];
   const chunks = [];
-  const chunkSize = 3;
-  for (let index = 0; index < words.length; index += chunkSize) {
-    chunks.push(words.slice(index, index + chunkSize).join(""));
+  for (let index = 0; index < words.length; index += REVEAL_CHUNK_SIZE) {
+    chunks.push(words.slice(index, index + REVEAL_CHUNK_SIZE).join(""));
   }
   let revealed = "";
 
@@ -370,7 +371,7 @@ async function sendMessage(rawMessage, options = {}) {
       typingBubble.remove();
       typingBubble = null;
     }
-    const errorMessage = error instanceof Error && error.message ? error.message : "Sorry, we couldn't reach the chat service. Please try again.";
+    const errorMessage = error instanceof Error && error.message ? error.message : "Network error or server unavailable. Please check your connection and try again.";
     lastFailedPrompt = message;
     updateStatus(errorMessage, lastFailedPrompt);
   } finally {
