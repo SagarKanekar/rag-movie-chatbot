@@ -107,6 +107,37 @@ rag-movie-chatbot/
 
 ## 🚢 Deployment
 
+### Vercel (Python Serverless API)
+This repo now includes a Vercel-ready API endpoint at `POST /api/chat`.
+
+1. Import the repository into Vercel.
+2. Set environment variables in Vercel project settings:
+   - `GROQ_API_KEY` (required for default `provider: "groq"`)
+   - `HUGGINGFACE_API_KEY` (required only when `provider: "huggingface"`)
+   - `VECTOR_STORE_DIR` (optional, defaults to `/tmp/chroma_db`)
+3. Deploy (Vercel uses `vercel.json` + `api/chat.py`).
+
+Request format:
+```json
+{
+  "message": "Recommend me a sci-fi movie",
+  "provider": "groq",
+  "movies": [
+    {"Name": "Inception", "Year": "2010", "Rating": "4.5", "Review": "Mind-bending sci-fi."}
+  ]
+}
+```
+
+Response contains `response`, `action`, `movies`, and `conversation_turn`.
+
+**Local vs Vercel behavior**
+- **Local UI**: `streamlit run app.py` (upload CSV directly in the app).
+- **Vercel API**: request/response mode via `/api/chat`; the request must include movie data in `movies`.
+
+**Limitations**
+- Serverless runtime is stateless and uses temporary storage (`/tmp`), so vector data is not durable.
+- Cold starts and embedding generation can increase latency for large movie lists.
+
 ### Railway
 1. Push to GitHub
 2. Connect to Railway
